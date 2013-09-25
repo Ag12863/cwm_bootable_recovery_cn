@@ -51,19 +51,31 @@ void load_volume_table() {
 
     fstab = fs_mgr_read_fstab("/etc/recovery.fstab");
     if (!fstab) {
+#ifndef USE_CHINESE_FONT
         LOGE("failed to read /etc/recovery.fstab\n");
+#else
+        LOGE("读取 /etc/recovery.fstab 失败\n");
+#endif
         return;
     }
 
     ret = fs_mgr_add_entry(fstab, "/tmp", "ramdisk", "ramdisk", 0);
     if (ret < 0 ) {
+#ifndef USE_CHINESE_FONT
         LOGE("failed to add /tmp entry to fstab\n");
+#else
+        LOGE("添加条目 /tmp 到 fstab 中失败\n");
+#endif
         fs_mgr_free_fstab(fstab);
         fstab = NULL;
         return;
     }
 
+#ifndef USE_CHINESE_FONT
     fprintf(stderr, "recovery filesystem table\n");
+#else
+    fprintf(stderr, "   recovery 文件系统表\n");
+#endif
     fprintf(stderr, "=========================\n");
     for (i = 0; i < fstab->num_entries; ++i) {
         Volume* v = &fstab->recs[i];
@@ -153,7 +165,11 @@ int try_mount(const char* device, const char* mount_point, const char* fs_type, 
     }
     if (ret == 0)
         return 0;
+#ifndef USE_CHINESE_FONT
     LOGW("failed to mount %s (%s)\n", device, strerror(errno));
+#else
+    LOGW("挂载 %s 失败(%s)\n", device, strerror(errno));
+#endif
     return ret;
 }
 
@@ -207,7 +223,11 @@ int ensure_path_mounted(const char* path) {
 int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point) {
     if (is_data_media_volume_path(path)) {
         if (ui_should_log_stdout()) {
+#ifndef USE_CHINESE_FONT
             LOGI("using /data/media for %s.\n", path);
+#else
+            LOGI("为 %s 使用 /data/media。\n", path);
+#endif
         }
         int ret;
         if (0 != (ret = ensure_path_mounted("/data")))
@@ -217,7 +237,11 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
     }
     Volume* v = volume_for_path(path);
     if (v == NULL) {
+#ifndef USE_CHINESE_FONT
         LOGE("unknown volume for path [%s]\n", path);
+#else
+        LOGE("未知的卷路径 [%s]\n", path);
+#endif
         return -1;
     }
     if (strcmp(v->fs_type, "ramdisk") == 0) {
@@ -228,7 +252,11 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
     int result;
     result = scan_mounted_volumes();
     if (result < 0) {
+#ifndef USE_CHINESE_FONT
         LOGE("failed to scan mounted volumes\n");
+#else
+        LOGE("扫描已挂载的卷失败\n");
+#endif
         return -1;
     }
 
@@ -253,7 +281,11 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
         const MtdPartition* partition;
         partition = mtd_find_partition_by_name(v->blk_device);
         if (partition == NULL) {
+#ifndef USE_CHINESE_FONT
             LOGE("failed to find \"%s\" partition to mount at \"%s\"\n",
+#else
+            LOGE("查找分区 \"%s\" 并挂载到 \"%s\" 失败\n",
+#endif
                  v->blk_device, mount_point);
             return -1;
         }
@@ -276,7 +308,11 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
         return __system(mount_cmd);
     }
 
+#ifndef USE_CHINESE_FONT
     LOGE("unknown fs_type \"%s\" for %s\n", v->fs_type, mount_point);
+#else
+    LOGE("未知的格式 \"%s\"\(%s\)\n", v->fs_type, mount_point);
+#endif
     return -1;
 }
 
@@ -290,7 +326,11 @@ int ensure_path_unmounted(const char* path) {
 
     Volume* v = volume_for_path(path);
     if (v == NULL) {
+#ifndef USE_CHINESE_FONT
         LOGE("unknown volume for path [%s]\n", path);
+#else
+        LOGE("未知的卷路径 [%s]\n", path);
+#endif
         return -1;
     }
     if (is_data_media_volume_path(path)) {
@@ -304,7 +344,11 @@ int ensure_path_unmounted(const char* path) {
     int result;
     result = scan_mounted_volumes();
     if (result < 0) {
+#ifndef USE_CHINESE_FONT
         LOGE("failed to scan mounted volumes\n");
+#else
+        LOGE("扫描已挂载的卷失败\n");
+#endif
         return -1;
     }
 
@@ -328,14 +372,22 @@ int format_volume(const char* volume) {
     if (v == NULL) {
         // silent failure for sd-ext
         if (strcmp(volume, "/sd-ext") != 0)
+#ifndef USE_CHINESE_FONT
             LOGE("unknown volume \"%s\"\n", volume);
+#else
+            LOGE("未知卷 \"%s\"\n", volume);
+#endif
         return -1;
     }
     // silent failure to format non existing sd-ext when defined in recovery.fstab
     if (strcmp(volume, "/sd-ext") == 0) {
         struct stat s;
         if (0 != stat(v->blk_device, &s)) {
+#ifndef USE_CHINESE_FONT
             LOGI("Skipping format of sd-ext\n");
+#else
+            LOGI("跳过对 sd-ext 的格式化\n");
+#endif
             return -1;
         }
     }
@@ -344,7 +396,11 @@ int format_volume(const char* volume) {
     // formatted instead of /sdcard/.android_secure)
     if (fs_mgr_is_voldmanaged(v) && strcmp(volume, v->mount_point) == 0) {
         if (ensure_path_unmounted(volume) != 0) {
+#ifndef USE_CHINESE_FONT
             LOGE("format_volume failed to unmount %s", v->mount_point);
+#else
+            LOGE("format_volume 卸载 \"%s\" 时出错\n", v->mount_point);
+#endif
         }
         return vold_format_volume(v->mount_point, 1) == CommandOkay ? 0 : -1;
     }
@@ -359,19 +415,31 @@ int format_volume(const char* volume) {
     }
     if (strcmp(v->fs_type, "ramdisk") == 0) {
         // you can't format the ramdisk.
+#ifndef USE_CHINESE_FONT
         LOGE("can't format_volume \"%s\"", volume);
+#else
+        LOGE("无法格式化卷 \"%s\"", volume);
+#endif
         return -1;
     }
     if (strcmp(v->mount_point, volume) != 0) {
 #if 0
+#ifndef USE_CHINESE_FONT
         LOGE("can't give path \"%s\" to format_volume\n", volume);
+#else
+        LOGE("无法传递路径 \"%s\" 给 format_volume\n", volume);
+#endif
         return -1;
 #endif
         return format_unknown_device(v->blk_device, volume, NULL);
     }
 
     if (ensure_path_unmounted(volume) != 0) {
+#ifndef USE_CHINESE_FONT
         LOGE("format_volume failed to unmount \"%s\"\n", v->mount_point);
+#else
+        LOGE("format_volume 卸载 \"%s\" 时出错\n", v->mount_point);
+#endif
         return -1;
     }
 
@@ -379,20 +447,36 @@ int format_volume(const char* volume) {
         mtd_scan_partitions();
         const MtdPartition* partition = mtd_find_partition_by_name(v->blk_device);
         if (partition == NULL) {
+#ifndef USE_CHINESE_FONT
             LOGE("format_volume: no MTD partition \"%s\"\n", v->blk_device);
+#else
+            LOGE("format_volume: 无 MTD 分区 \"%s\"\n", v->blk_device);
+#endif
             return -1;
         }
 
         MtdWriteContext *write = mtd_write_partition(partition);
         if (write == NULL) {
+#ifndef USE_CHINESE_FONT
             LOGW("format_volume: can't open MTD \"%s\"\n", v->blk_device);
+#else
+            LOGW("format_volume: 无法打开 MTD 设备 \"%s\"\n", v->blk_device);
+#endif
             return -1;
         } else if (mtd_erase_blocks(write, -1) == (off_t) -1) {
+#ifndef USE_CHINESE_FONT
             LOGW("format_volume: can't erase MTD \"%s\"\n", v->blk_device);
+#else
+            LOGW("format_volume: 无法擦除 MTD 设备 \"%s\"\n", v->blk_device);
+#endif
             mtd_write_close(write);
             return -1;
         } else if (mtd_write_close(write)) {
+#ifndef USE_CHINESE_FONT
             LOGW("format_volume: can't close MTD \"%s\"\n", v->blk_device);
+#else
+            LOGW("format_volume: 无法关闭 MTD 设备 \"%s\"\n", v->blk_device);
+#endif
             return -1;
         }
         return 0;
@@ -401,14 +485,22 @@ int format_volume(const char* volume) {
     if (strcmp(v->fs_type, "ext4") == 0) {
         int result = make_ext4fs(v->blk_device, v->length, volume, sehandle);
         if (result != 0) {
+#ifndef USE_CHINESE_FONT
             LOGE("format_volume: make_extf4fs failed on %s\n", v->blk_device);
+#else
+            LOGE("format_volume: 在设备 %s 上执行 make_extf4fs 时出错\n", v->blk_device);
+#endif
             return -1;
         }
         return 0;
     }
 
 #if 0
+#ifndef USE_CHINESE_FONT
     LOGE("format_volume: fs_type \"%s\" unsupported\n", v->fs_type);
+#else
+    LOGE("format_volume: fs_type \"%s\" 不支持\n", v->fs_type);
+#endif
     return -1;
 #endif
     return format_unknown_device(v->blk_device, volume, v->fs_type);
