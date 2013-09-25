@@ -259,6 +259,18 @@ static void draw_screen_locked(void)
         if (show_menu) {
 #ifndef BOARD_TOUCH_RECOVERY
             gr_color(MENU_TEXT_COLOR);
+
+            int batt_level = 0;
+            batt_level = get_batt_stats();
+            if (batt_level < 21) {
+                gr_color(255, 0, 0, 255);
+            }
+            char batt_text[40];
+            sprintf(batt_text, "[%d%%]", batt_level);
+            gr_color(MENU_TEXT_COLOR);
+            int length = strnlen(batt_text, MENU_MAX_COLS) * CHAR_WIDTH;
+            gr_text(gr_fb_width() - length - 1, CHAR_HEIGHT - 1, batt_text);
+
             gr_fill(0, (menu_top + menu_sel - menu_show_start) * CHAR_HEIGHT,
                     gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*CHAR_HEIGHT+1);
 
@@ -1090,4 +1102,25 @@ void ui_delete_line() {
 void ui_increment_frame() {
     gInstallingFrame =
         (gInstallingFrame + 1) % ui_parameters.installing_frames;
+}
+
+int get_batt_stats(void)
+{
+    static int level = -1;
+
+    char value[4];
+    FILE * capacity;
+    if ( (capacity = fopen("/sys/class/power_supply/battery/capacity","r")) ) {
+        fgets(value, 4, capacity);
+        fclose(capacity);
+    } else if ( (capacity = fopen("/sys/devices/platform/android-battery/power_supply/android-battery/capacity","r")) ) {
+        fgets(value, 4, capacity);
+        fclose(capacity);
+    }
+    level = atoi(value);
+    if (level > 100)
+        level = 100;
+    if (level < 0)
+        level = 0;
+    return level;
 }
