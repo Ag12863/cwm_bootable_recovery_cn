@@ -67,6 +67,8 @@ endif
 ifeq ($(findstring fontcn,$(BOARD_USE_CUSTOM_RECOVERY_FONT)),fontcn)
   LOCAL_CFLAGS += -DUSE_CHINESE_FONT
 endif
+RECOVERY_BUILD_TIME := $(shell date +"%Y-%m-%d %H:%M")
+LOCAL_CFLAGS += -DRECOVERY_BUILD_TIME="$(RECOVERY_BUILD_TIME)"
 
 BOARD_RECOVERY_CHAR_WIDTH := $(shell echo $(BOARD_USE_CUSTOM_RECOVERY_FONT) | cut -d _  -f 2 | cut -d . -f 1 | cut -d x -f 1)
 BOARD_RECOVERY_CHAR_HEIGHT := $(shell echo $(BOARD_USE_CUSTOM_RECOVERY_FONT) | cut -d _  -f 2 | cut -d . -f 1 | cut -d x -f 2)
