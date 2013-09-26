@@ -1127,6 +1127,9 @@ int get_batt_stats(void)
     } else if ( (capacity = fopen("/sys/devices/platform/android-battery/power_supply/android-battery/capacity","r")) ) {
         fgets(value, 4, capacity);
         fclose(capacity);
+    } else if ( (capacity = fopen("/sys/devices/platform/bq_bci_battery.1/power_supply/Battery/capacity","r")) ) {
+        fgets(value, 4, capacity);
+        fclose(capacity);
     }
     level = atoi(value);
     if (level > 100)
