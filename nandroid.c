@@ -64,7 +64,7 @@ static void ensure_directory(const char* dir) {
 }
 
 static int print_and_error(const char* message) {
-    ui_print("%s", message);
+    ui_print("%s\n", message);
     return 1;
 }
 
@@ -400,7 +400,6 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
 #else
         ui_print("正在备份 %s 镜像...\n", name);
 #endif
-
         if (0 != (ret = backup_raw_partition(vol->fs_type, vol->blk_device, tmp))) {
 #ifndef USE_CHINESE_FONT
             ui_print("Error while backing up %s image!", name);
@@ -657,7 +656,7 @@ static int do_tar_extract(char* command, int callback) {
 
 static int tar_gzip_extract_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
     char tmp[PATH_MAX];
-    sprintf(tmp, "cd $(dirname %s) ; pigz -d -c %s* | tar xv ; exit $?", backup_path, backup_file_image);
+    sprintf(tmp, "cd $(dirname %s) ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_path, backup_file_image);
 
     return do_tar_extract(tmp, callback);
 }
@@ -919,9 +918,9 @@ int nandroid_restore_partition(const char* backup_path, const char* root) {
 #endif
         if (0 != (ret = format_volume(root))) {
 #ifndef USE_CHINESE_FONT
-            ui_print("Error while erasing %s image!", name);
+            ui_print("Error while erasing %s image!\n", name);
 #else
-            ui_print("格式化 %s 时出错！", name);
+            ui_print("格式化 %s 时出错！\n", name);
 #endif
             return ret;
         }
@@ -938,9 +937,9 @@ int nandroid_restore_partition(const char* backup_path, const char* root) {
 #endif
         if (0 != (ret = restore_raw_partition(vol->fs_type, vol->blk_device, tmp))) {
 #ifndef USE_CHINESE_FONT
-            ui_print("Error while flashing %s image!", name);
+            ui_print("Error while flashing %s image!\n", name);
 #else
-            ui_print("刷入 %s 镜像时出错！", name);
+            ui_print("刷入 %s 镜像时出错！\n", name);
 #endif
             return ret;
         }
@@ -1169,7 +1168,7 @@ int nandroid_main(int argc, char** argv)
             return nandroid_usage();
         return nandroid_restore(argv[2], 1, 1, 1, 1, 1, 0);
     }
-    
+
     if (strcmp("dump", argv[1]) == 0)
     {
         if (argc != 3)

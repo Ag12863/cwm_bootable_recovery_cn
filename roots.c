@@ -308,11 +308,6 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
         return __system(mount_cmd);
     }
 
-#ifndef USE_CHINESE_FONT
-    LOGE("unknown fs_type \"%s\" for %s\n", v->fs_type, mount_point);
-#else
-    LOGE("未知的格式 \"%s\"\(%s\)\n", v->fs_type, mount_point);
-#endif
     return -1;
 }
 
@@ -494,6 +489,17 @@ int format_volume(const char* volume) {
         }
         return 0;
     }
+
+#ifdef USE_F2FS
+    if (strcmp(v->fs_type, "f2fs") == 0) {
+        int result = make_f2fs_main(v->blk_device, v->mount_point);
+        if (result != 0) {
+            LOGE("format_volume: mkfs.f2f2 failed on %s\n", v->blk_device);
+            return -1;
+        }
+        return 0;
+    }
+#endif
 
 #if 0
 #ifndef USE_CHINESE_FONT
