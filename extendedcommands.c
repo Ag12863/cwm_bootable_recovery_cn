@@ -820,7 +820,7 @@ int format_device(const char *device, const char *path, const char *fs_type) {
 #ifndef USE_CHINESE_FONT
             LOGE("format_volume: make_ext4fs failed on %s\n", device);
 #else
-            LOGE("format_volume: 在设备 %s 上执行 make_extf4fs 时出错\n", device);
+            LOGE("format_volume: 在设备 %s 上执行 make_ext4fs 时出错\n", device);
 #endif
             return -1;
         }
@@ -1587,9 +1587,15 @@ void format_sdcard(const char* volume) {
     if (!can_partition(volume) || is_data_media_volume_path(volume))
         return;
 
+#ifndef USE_CHINESE_FONT
     char* headers[] = {"Format device:", volume, "", NULL };
 
     static char* list[] = { "default",
+#else
+    char* headers[] = {"格式化设备:", volume, "", NULL };
+
+    static char* list[] = { "默认格式",
+#endif
                             "vfat",
                             "exfat",
                             "ntfs",
@@ -1604,7 +1610,11 @@ void format_sdcard(const char* volume) {
     int chosen_item = get_menu_selection(headers, list, 0, 0);
     if (chosen_item == GO_BACK)
         return;
+#ifndef USE_CHINESE_FONT
     if (!confirm_selection( "Confirm formatting?", "Yes - Format device"))
+#else
+    if (!confirm_selection( "确认需要格式化？", "是 - 格式化此设备"))
+#endif
         return;
 
     Volume *v = volume_for_path(volume);
@@ -1642,9 +1652,15 @@ void format_sdcard(const char* volume) {
     }
 
     if (ret)
+#ifndef USE_CHINESE_FONT
         ui_print("Could not format %s (%s)\n", volume, list[chosen_item]);
     else
         ui_print("Done formatting %s (%s)\n", volume, list[chosen_item]);
+#else
+        ui_print("无法格式化 %s (%s)\n", volume, list[chosen_item]);
+    else
+        ui_print("成功完成格式化 %s (%s)\n", volume, list[chosen_item]);
+#endif
 }
 
 static void partition_sdcard(const char* volume) {
@@ -1835,7 +1851,11 @@ int show_advanced_menu()
 #endif
 #endif
 
+#ifndef USE_CHINESE_FONT
     char list_prefix[] = "partition ";
+#else
+    char list_prefix[] = "分区 ";
+#endif
     if (can_partition(primary_path)) {
         sprintf(buf, "%s%s", list_prefix, primary_path);
         list[FIXED_ADVANCED_ENTRIES] = strdup(buf);
