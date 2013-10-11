@@ -49,7 +49,7 @@ int vold_mount_volume(const char* path, int wait) {
 #ifndef USE_CHINESE_FONT
         LOGI("Volume %s is not idle, current state is %d\n", path, state);
 #else
-        LOGI("卷当前 %s 并未闲置，当前状态为：%d\n", path, state);
+        LOGI("卷 %s 并未闲置，当前状态为：%d\n", path, state);
 #endif
         return -1;
     }

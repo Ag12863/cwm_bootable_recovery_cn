@@ -642,11 +642,19 @@ get_menu_selection(const char** headers, char** items, int menu_only,
                 wrap_count = 0;
                 if (ui_get_rainbow_mode()) {
                     ui_set_rainbow_mode(0);
+#ifndef USE_CHINESE_FONT
                     ui_print("Rainbow mode disabled\n");
+#else
+                    ui_print("已禁用彩虹模式\n");
+#endif
                 }
                 else {
                     ui_set_rainbow_mode(1);
+#ifndef USE_CHINESE_FONT
                     ui_print("Rainbow mode enabled!\n");
+#else
+                    ui_print("已启用彩虹模式！\n");
+#endif
                 }
             }
         }
