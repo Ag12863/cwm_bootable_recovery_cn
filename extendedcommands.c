@@ -684,7 +684,11 @@ int confirm_selection(const char* title, const char* confirm)
         ret = (chosen_item == 7);
     }
     else {
+#ifndef USE_CHINESE_FONT
         char* items[] = { "No",
+#else
+        char* items[] = { "否",
+#endif
                         confirm_str, //" Yes -- wipe partition",   // [1]
                         NULL };
         int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
