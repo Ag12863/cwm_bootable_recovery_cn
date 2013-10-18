@@ -1085,6 +1085,22 @@ main(int argc, char **argv) {
     ui_print("编译作者：大星星@ATX团队\n");
     ui_print("编译时间："EXPAND(RECOVERY_BUILD_TIME)"\n");
 #endif
+
+#ifdef BOARD_RECOVERY_SWIPE
+#ifndef BOARD_TOUCH_RECOVERY
+    //display directions for swipe controls
+#ifndef USE_CHINESE_FONT
+    ui_print("Swipe up/down to change selections.\n");
+    ui_print("Swipe to the right for enter.\n");
+    ui_print("Swipe to the left for back.\n");
+#else
+    ui_print("上下滑动更改选择。\n");
+    ui_print("右滑为确认选择。\n");
+    ui_print("左滑为返回。\n");
+#endif
+#endif
+#endif
+
     load_volume_table();
     process_volumes();
     vold_client_start(&v_callbacks, 0);
