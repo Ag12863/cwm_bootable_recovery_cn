@@ -1,3 +1,5 @@
+ifneq ($(WITH_SIMPLE_RECOVERY),true)
+
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -42,7 +44,7 @@ RECOVERY_NAME := CWM-based Recovery
 endif
 endif
 
-RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.4.4
+RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.4.5
 
 LOCAL_CFLAGS += -DRECOVERY_VERSION="$(RECOVERY_VERSION)"
 RECOVERY_API_VERSION := 2
@@ -210,3 +212,5 @@ include $(commands_recovery_local_path)/utilities/Android.mk
 include $(commands_recovery_local_path)/su/Android.mk
 include $(commands_recovery_local_path)/voldclient/Android.mk
 commands_recovery_local_path :=
+
+endif

@@ -75,7 +75,6 @@ static const char *LOG_FILE = "/cache/recovery/log";
 static const char *CACHE_ROOT = "/cache";
 static const char *SDCARD_ROOT = "/sdcard";
 static int allow_display_toggle = 0;
-static int poweroff = 0;
 static const char *TEMPORARY_LOG_FILE = "/tmp/recovery.log";
 static const char *SIDELOAD_TEMP_DIR = "/tmp/sideload";
 
@@ -573,7 +572,7 @@ get_menu_selection(const char** headers, char** items, int menu_only,
     // throw away keys pressed previously, so user doesn't
     // accidentally trigger menu items.
     ui_clear_key_queue();
-    
+
     int item_count = ui_start_menu(headers, items, initial_selection);
     int selected = initial_selection;
     int chosen_item = -1; // NO_ACTION
@@ -855,7 +854,7 @@ prompt_and_wait() {
     for (;;) {
         finish_recovery(NULL);
         ui_reset_progress();
-        
+
         ui_root_menu = 1;
         // ui_menu_level is a legacy variable that i am keeping around to prevent build breakage.
         ui_menu_level = 0;
@@ -876,7 +875,6 @@ prompt_and_wait() {
         for (;;) {
             switch (chosen_item) {
                 case ITEM_REBOOT:
-                    poweroff = 0;
                     return;
 
                 case ITEM_WIPE_DATA:
@@ -981,6 +979,7 @@ setup_adbd() {
 
 // call a clean reboot
 void reboot_main_system(int cmd, int flags, char *arg) {
+    write_recovery_version();
     verify_root_and_recovery();
     finish_recovery(NULL); // sync() in here
     vold_unmount_all();
@@ -1143,7 +1142,7 @@ main(int argc, char **argv) {
         case 'p': previous_runs = atoi(optarg); break;
         case 's': send_intent = optarg; break;
         case 'u': update_package = optarg; break;
-        case 'w': 
+        case 'w':
 #ifndef BOARD_RECOVERY_ALWAYS_WIPES
         wipe_data = wipe_cache = 1;
 #endif
@@ -1298,33 +1297,19 @@ main(int argc, char **argv) {
         prompt_and_wait();
     }
 
-    verify_root_and_recovery();
-
+    // We reach here when in main menu we choose reboot main system or for some wipe commands on start
     // If there is a radio image pending, reboot now to install it.
     maybe_install_firmware_update(send_intent);
 
     // Otherwise, get ready to boot the main system...
     finish_recovery(send_intent);
-
-    vold_unmount_all();
-
-    sync();
-    if(!poweroff) {
 #ifndef USE_CHINESE_FONT
-        ui_print("Rebooting...\n");
+    ui_print("Rebooting...\n");
 #else
-        ui_print("重启中...\n");
+    ui_print("重启中...\n");
 #endif
-        android_reboot(ANDROID_RB_RESTART, 0, 0);
-    }
-    else {
-#ifndef USE_CHINESE_FONT
-        ui_print("Shutting down...\n");
-#else
-        ui_print("关机中...\n");
-#endif
-        android_reboot(ANDROID_RB_POWEROFF, 0, 0);
-    }
+    reboot_main_system(ANDROID_RB_RESTART, 0, 0);
+
     return EXIT_SUCCESS;
 }
 
