@@ -547,6 +547,7 @@ copy_sideloaded_package(const char* original_path) {
 static const char**
 prepend_title(const char** headers) {
     const char* title[] = { EXPAND(RECOVERY_VERSION),
+                      EXPAND(RECOVERY_PRODUCT_MODEL)" 专用版",
                       "",
                       NULL };
 
