@@ -1011,6 +1011,7 @@ static int handle_volume_state_changed(char* label, char* path, int state) {
             log = 1;
     }
 
+    log = 0;
     if (log == 0)
         LOGI("%s: %s\n", path, volume_state_to_string(state));
     else if (log == 1)
