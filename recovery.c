@@ -547,7 +547,11 @@ copy_sideloaded_package(const char* original_path) {
 static const char**
 prepend_title(const char** headers) {
     const char* title[] = { EXPAND(RECOVERY_VERSION),
+#ifndef USE_CHINESE_FONT
+                      "Only for "EXPAND(RECOVERY_PRODUCT_MODEL),
+#else
                       EXPAND(RECOVERY_PRODUCT_MODEL)" 专用版",
+#endif
                       "",
                       NULL };
 
