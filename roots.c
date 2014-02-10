@@ -494,12 +494,13 @@ int format_volume(const char* volume) {
 
 #ifdef USE_F2FS
     if (strcmp(v->fs_type, "f2fs") == 0) {
-        int result = make_f2fs_main(v->blk_device, v->mount_point);
+        const char* args[] = { "mkfs.f2fs", v->blk_device };
+        int result = make_f2fs_main(2, (char**)args);
         if (result != 0) {
 #ifndef USE_CHINESE_FONT
-            LOGE("format_volume: mkfs.f2f2 failed on %s\n", v->blk_device);
+            LOGE("format_volume: mkfs.f2fs failed on %s\n", v->blk_device);
 #else
-            LOGE("format_volume: 对设备 %s 执行 mkfs.f2f2 失败\n", v->blk_device);
+            LOGE("format_volume: 对设备 %s 执行 mkfs.f2fs 失败\n", v->blk_device);
 #endif
             return -1;
         }

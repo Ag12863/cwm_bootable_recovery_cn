@@ -127,9 +127,6 @@ void *adb_sideload_thread(void* v) {
 
 int
 apply_from_adb() {
-#ifdef ENABLE_LOKI
-    int loki_support;
-#endif
     stop_adbd();
     set_usb_driver(1);
 
@@ -203,19 +200,19 @@ apply_from_adb() {
 #endif
     }
 
-    remove(ADB_SIDELOAD_FILENAME);
 #ifdef ENABLE_LOKI
-    if(loki_support_enabled) {
+    else if (loki_support_enabled) {
 #ifndef USE_CHINESE_FONT
-       ui_print("Checking if loki-fying is needed");
+        ui_print("Checking if loki-fying is needed");
 #else
-       ui_print("检查是否需要 loki-fying");
+        ui_print("检查是否需要 loki-fying");
 #endif
-       int result;
-       if(result = loki_check()) {
-           return result;
-       }
+        install_status = loki_check();
+        if (install_status != INSTALL_SUCCESS)
+            ui_set_background(BACKGROUND_ICON_ERROR);
     }
 #endif
+
+    remove(ADB_SIDELOAD_FILENAME);
     return install_status;
 }
