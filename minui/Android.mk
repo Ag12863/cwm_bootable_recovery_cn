@@ -6,15 +6,24 @@ ifneq ($(BOARD_CUSTOM_GRAPHICS),)
   LOCAL_SRC_FILES += $(BOARD_CUSTOM_GRAPHICS)
 else
   ifeq ($(findstring fontcn,$(BOARD_USE_CUSTOM_RECOVERY_FONT)),fontcn)
-    LOCAL_SRC_FILES += graphics_cn.c
+    LOCAL_SRC_FILES += graphics_cn.c graphics_overlay.c
   else
-    LOCAL_SRC_FILES += graphics.c
+    LOCAL_SRC_FILES += graphics.c graphics_overlay.c
   endif
 endif
 
 LOCAL_C_INCLUDES +=\
     external/libpng\
     external/zlib
+ 
+#ifeq ($(call is-vendor-board-platform,QCOM),true)
+#  LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
+#  LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
+#endif
+
+ifeq ($(TARGET_USES_QCOM_BSP), true)
+    LOCAL_CFLAGS += -DMSM_BSP
+endif
 
 LOCAL_MODULE := libminui
 

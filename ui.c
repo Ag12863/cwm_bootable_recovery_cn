@@ -120,7 +120,7 @@ static int menu_top = 0, menu_items = 0, menu_sel = 0;
 static int menu_show_start = 0;             // this is line which menu display is starting at
 static int max_menu_rows;
 
-static int cur_rainbow_color = 0;
+static unsigned cur_rainbow_color = 0;
 static int gRainbowMode = 0;
 
 // Key event input queue
@@ -238,7 +238,7 @@ static void draw_progress_locked()
 static void draw_text_line(int row, const char* t) {
   if (t[0] != '\0') {
     if (ui_get_rainbow_mode()) ui_rainbow_mode();
-    gr_text(0, (row+1)*CHAR_HEIGHT-1, t);
+    gr_text(0, (row+1)*CHAR_HEIGHT-1, t, 0);
   }
 }
 
@@ -277,7 +277,7 @@ static void draw_screen_locked(void)
             sprintf(batt_text, "[%d%%]", batt_level);
             gr_color(MENU_TEXT_COLOR);
             int length = strnlen(batt_text, MENU_MAX_COLS) * CHAR_WIDTH;
-            gr_text(gr_fb_width() - length - 1, CHAR_HEIGHT - 1, batt_text);
+            gr_text(gr_fb_width() - length - 1, CHAR_HEIGHT - 1, batt_text, 0);
 
             gr_fill(0, (menu_top + menu_sel - menu_show_start) * CHAR_HEIGHT,
                     gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*CHAR_HEIGHT+1);
@@ -580,9 +580,9 @@ void ui_init(void)
         // base image on the screen.
         if (gBackgroundIcon[BACKGROUND_ICON_INSTALLING] != NULL) {
             gr_surface bg = gBackgroundIcon[BACKGROUND_ICON_INSTALLING];
-            ui_parameters.install_overlay_offset_x =
+            ui_parameters.install_overlay_offset_x +=
                 (gr_fb_width() - gr_get_width(bg)) / 2;
-            ui_parameters.install_overlay_offset_y =
+            ui_parameters.install_overlay_offset_y +=
                 (gr_fb_height() - gr_get_height(bg)) / 2;
         }
     } else {
@@ -1176,7 +1176,7 @@ void ui_rainbow_mode() {
 
     gr_color(colors[cur_rainbow_color], colors[cur_rainbow_color+1], colors[cur_rainbow_color+2], 255);
     cur_rainbow_color += 3;
-    if (cur_rainbow_color >= sizeof(colors)/sizeof(colors[0])) cur_rainbow_color = 0;
+    if (cur_rainbow_color >= (sizeof(colors) / sizeof(colors[0]))) cur_rainbow_color = 0;
 }
 
 void ui_set_rainbow_mode(int rainbowMode) {

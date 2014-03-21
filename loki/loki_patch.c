@@ -175,6 +175,22 @@ struct target targets[] = {
 		.lg = 1,
 	},
 	{
+		.vendor = "AT&T",
+		.device = "LG G2",
+		.build = "D80010o",
+		.check_sigs = 0xf813428,
+		.hdr = 0xf904400,
+		.lg = 1,
+	},
+	{
+		.vendor = "Verizon",
+		.device = "LG G2",
+		.build = "VS98012b",
+		.check_sigs = 0xf813210,
+		.hdr = 0xf906440,
+		.lg = 1,
+	},
+	{
 		.vendor = "T-Mobile or Canada",
 		.device = "LG G2",
 		.build = "D80110c or D803",
@@ -265,7 +281,7 @@ struct target targets[] = {
 	{
 		.vendor = "International",
 		.device = "LG G Pad 8.3",
-		.build = "V50010c",
+		.build = "V50010c or V50010e",
 		.check_sigs = 0x88f108bc,
 		.hdr = 0x88f801b8,
 		.lg = 1,
@@ -292,6 +308,14 @@ struct target targets[] = {
 		.build = "LGL22",
 		.check_sigs = 0xf813458,
 		.hdr = 0xf8d41c0,
+		.lg = 1,
+	},
+	{
+		.vendor = "KT",
+		.device = "LG Optimus GK",
+		.build = "F220K",
+		.check_sigs = 0x88f11034,
+		.hdr = 0x88f54418,
 		.lg = 1,
 	},
 };

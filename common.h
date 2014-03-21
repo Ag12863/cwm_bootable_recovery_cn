@@ -48,7 +48,6 @@ int ui_get_text_cols();
 void ui_increment_frame();
 
 #ifdef ENABLE_LOKI
-// Toggle for loki support
 extern int loki_support_enabled;
 int loki_check();
 #endif
@@ -153,5 +152,7 @@ FILE* fopen_path(const char *path, const char *mode);
 
 int ui_get_selected_item();
 int ui_is_showing_back_button();
+
+void set_perf_mode(int on);
 
 #endif  // RECOVERY_COMMON_H

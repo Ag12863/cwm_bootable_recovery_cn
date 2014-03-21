@@ -34,6 +34,7 @@
 
 #include <signal.h>
 #include <sys/wait.h>
+#include <libgen.h> // basename
 
 #include "bootloader.h"
 #include "common.h"
@@ -52,7 +53,9 @@
 #include "edify/expr.h"
 #include "mtdutils/mtdutils.h"
 #include "mmcutils/mmcutils.h"
-//#include "edify/parser.h"
+
+extern int yyparse();
+extern int yy_scan_bytes();
 
 Value* UIPrintFn(const char* name, State* state, int argc, Expr* argv[]) {
     char** args = ReadVarArgs(state, argc, argv);
@@ -161,9 +164,9 @@ Value* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
     
     if (strcmp(path, "/data") == 0 && has_datadata()) {
 #ifndef USE_CHINESE_FONT
-        ui_print("Formatting /datadata...\n", path);
+        ui_print("Formatting /datadata...\n");
 #else
-        ui_print("正在格式化 /datadata...\n", path);
+        ui_print("正在格式化 /datadata...\n");
 #endif
         if (0 != format_volume("/datadata")) {
             free(path);
@@ -343,6 +346,87 @@ int run_script_from_buffer(char* script_data, int script_len, char* filename)
 
 #define EXTENDEDCOMMAND_SCRIPT "/cache/recovery/extendedcommand"
 
+int extendedcommand_file_exists()
+{
+    struct stat file_info;
+    return 0 == stat(EXTENDEDCOMMAND_SCRIPT, &file_info);
+}
+
+int edify_main(int argc, char** argv) {
+    load_volume_table();
+    process_volumes();
+    RegisterBuiltins();
+    RegisterRecoveryHooks();
+    FinishRegistration();
+
+    if (argc != 2) {
+        printf("edify <filename>\n");
+        return 1;
+    }
+
+    FILE* f = fopen(argv[1], "r");
+    if (f == NULL) {
+        printf("%s: %s: No such file or directory\n", argv[0], argv[1]);
+        return 1;
+    }
+    char buffer[8192];
+    int size = fread(buffer, 1, 8191, f);
+    fclose(f);
+    buffer[size] = '\0';
+
+    Expr* root;
+    int error_count = 0;
+    yy_scan_bytes(buffer, size);
+    int error = yyparse(&root, &error_count);
+    printf("parse returned %d; %d errors encountered\n", error, error_count);
+    if (error == 0 || error_count > 0) {
+
+        //ExprDump(0, root, buffer);
+
+        State state;
+        state.cookie = NULL;
+        state.script = buffer;
+        state.errmsg = NULL;
+
+        char* result = Evaluate(&state, root);
+        if (result == NULL) {
+            printf("result was NULL, message is: %s\n",
+                   (state.errmsg == NULL ? "(NULL)" : state.errmsg));
+            free(state.errmsg);
+        } else {
+            printf("result is [%s]\n", result);
+        }
+    }
+    return 0;
+}
+
+int run_script(char* filename)
+{
+    struct stat file_info;
+    if (0 != stat(filename, &file_info)) {
+        printf("Error executing stat on file: %s\n", filename);
+        return 1;
+    }
+
+    int script_len = file_info.st_size;
+    char* script_data = (char*)malloc(script_len + 1);
+    FILE *file = fopen(filename, "rb");
+    fread(script_data, script_len, 1, file);
+    // supposedly not necessary, but let's be safe.
+    script_data[script_len] = '\0';
+    fclose(file);
+#ifndef USE_CHINESE_FONT
+    LOGI("Running script:\n");
+#else
+    LOGI("执行脚本:\n");
+#endif
+    LOGI("\n%s\n", script_data);
+
+    int ret = run_script_from_buffer(script_data, script_len, filename);
+    free(script_data);
+    return ret;
+}
+
 int run_and_remove_extendedcommand()
 {
     char* primary_path = get_primary_storage_path();
@@ -423,85 +507,4 @@ int run_and_remove_extendedcommand()
     }
 #endif
     return run_script(tmp);
-}
-
-int extendedcommand_file_exists()
-{
-    struct stat file_info;
-    return 0 == stat(EXTENDEDCOMMAND_SCRIPT, &file_info);
-}
-
-int edify_main(int argc, char** argv) {
-    load_volume_table();
-    process_volumes();
-    RegisterBuiltins();
-    RegisterRecoveryHooks();
-    FinishRegistration();
-
-    if (argc != 2) {
-        printf("edify <filename>\n");
-        return 1;
-    }
-
-    FILE* f = fopen(argv[1], "r");
-    if (f == NULL) {
-        printf("%s: %s: No such file or directory\n", argv[0], argv[1]);
-        return 1;
-    }
-    char buffer[8192];
-    int size = fread(buffer, 1, 8191, f);
-    fclose(f);
-    buffer[size] = '\0';
-
-    Expr* root;
-    int error_count = 0;
-    yy_scan_bytes(buffer, size);
-    int error = yyparse(&root, &error_count);
-    printf("parse returned %d; %d errors encountered\n", error, error_count);
-    if (error == 0 || error_count > 0) {
-
-        //ExprDump(0, root, buffer);
-
-        State state;
-        state.cookie = NULL;
-        state.script = buffer;
-        state.errmsg = NULL;
-
-        char* result = Evaluate(&state, root);
-        if (result == NULL) {
-            printf("result was NULL, message is: %s\n",
-                   (state.errmsg == NULL ? "(NULL)" : state.errmsg));
-            free(state.errmsg);
-        } else {
-            printf("result is [%s]\n", result);
-        }
-    }
-    return 0;
-}
-
-int run_script(char* filename)
-{
-    struct stat file_info;
-    if (0 != stat(filename, &file_info)) {
-        printf("Error executing stat on file: %s\n", filename);
-        return 1;
-    }
-
-    int script_len = file_info.st_size;
-    char* script_data = (char*)malloc(script_len + 1);
-    FILE *file = fopen(filename, "rb");
-    fread(script_data, script_len, 1, file);
-    // supposedly not necessary, but let's be safe.
-    script_data[script_len] = '\0';
-    fclose(file);
-#ifndef USE_CHINESE_FONT
-    LOGI("Running script:\n");
-#else
-    LOGI("执行脚本:\n");
-#endif
-    LOGI("\n%s\n", script_data);
-
-    int ret = run_script_from_buffer(script_data, script_len, filename);
-    free(script_data);
-    return ret;
 }

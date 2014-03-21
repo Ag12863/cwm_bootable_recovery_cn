@@ -15,7 +15,7 @@ LOCAL_SRC_FILES := \
     mounts.c \
     extendedcommands.c \
     nandroid.c \
-    ../../system/core/toolbox/reboot.c \
+    reboot.c \
     ../../system/core/toolbox/dynarray.c \
     ../../system/core/toolbox/newfs_msdos.c \
     firmware.c \
@@ -28,6 +28,8 @@ LOCAL_SRC_FILES := \
 
 ADDITIONAL_RECOVERY_FILES := $(shell echo $$ADDITIONAL_RECOVERY_FILES)
 LOCAL_SRC_FILES += $(ADDITIONAL_RECOVERY_FILES)
+
+LOCAL_ADDITIONAL_DEPENDENCIES += updater.fallback
 
 LOCAL_MODULE := recovery
 
@@ -44,7 +46,7 @@ RECOVERY_NAME := CWM-based Recovery
 endif
 endif
 
-RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.4.6
+RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.4.7
 
 LOCAL_CFLAGS += -DRECOVERY_VERSION="$(RECOVERY_VERSION)"
 RECOVERY_API_VERSION := 2
