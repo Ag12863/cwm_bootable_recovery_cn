@@ -1397,6 +1397,7 @@ static void choose_default_backup_format() {
                                  "tar + gzip (默认)",
 #endif
                                  NULL };
+
     if (fmt == NANDROID_BACKUP_FORMAT_DUP) {
         list = list_dup_default;
     } else if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
@@ -1621,7 +1622,7 @@ void format_sdcard(const char* volume) {
     if (chosen_item < 0) // REFRESH or GO_BACK
         return;
 #ifndef USE_CHINESE_FONT
-    if (!confirm_selection( "Confirm formatting?", "Yes - Format device"))
+    if (!confirm_selection("Confirm formatting?", "Yes - Format device"))
 #else
     if (!confirm_selection("确认需要格式化？", "是 - 格式化此设备"))
 #endif
@@ -2170,7 +2171,7 @@ void handle_failure(int ret) {
 #ifndef USE_CHINESE_FONT
     ui_print("/tmp/recovery.log was copied to /sdcard/clockworkmod/recovery.log. Please open ROM Manager to report the issue.\n");
 #else
-    ui_print("已将 /tmp/recovery.log 复制到 /sdcard/clockworkmod/recovery.log。\n");
+    ui_print("已将 /tmp/recovery.log 复制到 /sdcard/clockworkmod/recovery.log。请打开ROM管理器来反馈这个问题。\n");
 #endif
 }
 

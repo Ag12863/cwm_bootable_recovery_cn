@@ -152,7 +152,11 @@ static int set_legacy_props() {
     sprintf(tmp, "%d,%d", dup(propfd), propsz);
     setenv("ANDROID_PROPERTY_WORKSPACE", tmp, 1);
     if (rename(DEV_PROP_PATH, DEV_PROP_BACKUP_PATH) != 0) {
+#ifndef USE_CHINESE_FONT
         LOGE("Could not rename properties path: %s\n", DEV_PROP_PATH);
+#else
+        LOGE("无法重命名属性设置文件路径：%s\n", DEV_PROP_PATH);
+#endif
         return -1;
     }
 
@@ -162,7 +166,11 @@ static int set_legacy_props() {
 
 static int unset_legacy_props() {
     if (rename(DEV_PROP_BACKUP_PATH, DEV_PROP_PATH) != 0) {
+#ifndef USE_CHINESE_FONT
         LOGE("Could not rename properties path: %s\n", DEV_PROP_BACKUP_PATH);
+#else
+        LOGE("无法重命名属性设置文件路径：%s\n", DEV_PROP_BACKUP_PATH);
+#endif
         return -1;
     }
 
@@ -225,14 +233,10 @@ try_update_binary(const char *path, ZipArchive *zip) {
     /* Make sure the update binary is compatible with this recovery
      *
      * We're building this against 4.4's (or above) bionic, which
-     * has a different property namespace structure. Old updaters
-     * don't know how to deal with it, so if we think we got one
-     * of those, force the use of a fallback compatible copy and
-     * hope for the best
-     *
-     * if "set_perm_" is found, it's probably a regular updater
-     * instead of a custom one. And if "set_metadata_" isn't there,
-     * it's pre-4.4, which makes it incompatible
+     * has a different property namespace structure. If "set_perm_"
+     * is found, it's probably a regular updater instead of a custom
+     * one. If "set_metadata_" isn't there, it's pre-4.4, which
+     * makes it incompatible.
      *
      * Also, I hate matching strings in binary blobs */
 
@@ -276,24 +280,22 @@ try_update_binary(const char *path, ZipArchive *zip) {
     }
     fclose(updaterfile);
 
-    /* Found set_perm and !set_metadata, overwrite the binary with the fallback */
+    /* Set legacy properties */
     if (foundsetperm && !foundsetmeta) {
-        FILE *fallbackupdater = fopen("/res/updater.fallback", "rb");
-        FILE *updaterfile = fopen(binary, "wb");
-        char updbuf[1024];
-
 #ifndef USE_CHINESE_FONT
-        LOGW("Using fallback updater for downgrade...\n");
+        LOGI("Using legacy property environment for update-binary...\n");
+        if (set_legacy_props() != 0) {
+            LOGE("Legacy property environment did not init successfully. Properties may not be detected.\n");
+        } else {
+            LOGI("Legacy property environment initialized.\n");
 #else
-        LOGW("使用回滚版本的更新器进行降级...\n");
+        LOGI("为 update-binary 使用旧版属性环境...\n");
+        if (set_legacy_props() != 0) {
+            LOGE("旧版属性环境初始化失败。可能未检测到属性设置文件。\n");
+        } else {
+            LOGI("已初始化旧版属性环境。\n");
 #endif
-        while (!feof(fallbackupdater)) {
-           fread(&updbuf, 1, 1024, fallbackupdater);
-           fwrite(&updbuf, 1, 1024, updaterfile);
         }
-        chmod(binary, 0755);
-        fclose(updaterfile);
-        fclose(fallbackupdater);
     }
 
     int pipefd[2];
@@ -412,9 +414,15 @@ try_update_binary(const char *path, ZipArchive *zip) {
     /* Unset legacy properties */
     if (legacy_props_initd) {
         if (unset_legacy_props() != 0) {
+#ifndef USE_CHINESE_FONT
             LOGE("Legacy property environment did not disable successfully. Legacy properties may still be in use.\n");
         } else {
             LOGI("Legacy property environment disabled.\n");
+#else
+            LOGE("未成功禁用旧版属性环境。旧版属性环境可能仍然在使用中。\n");
+        } else {
+            LOGI("已禁用旧版属性环境。n");
+#endif
         }
     }
 

@@ -382,13 +382,6 @@ finish_recovery(const char *send_intent) {
 
     sync();  // For good measure.
 }
- 
-typedef struct _saved_log_file {
-    char* name;
-    struct stat st;
-    unsigned char* data;
-    struct _saved_log_file* next;
-} saved_log_file;
 
 typedef struct _saved_log_file {
     char* name;

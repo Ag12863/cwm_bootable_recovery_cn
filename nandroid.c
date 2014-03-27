@@ -418,6 +418,7 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
             strcpy(tmp, "/proc/self/fd/1");
         else
             sprintf(tmp, "%s/%s.img", backup_path, name);
+
 #ifndef USE_CHINESE_FONT
         ui_print("Backing up %s image...\n", name);
 #else
@@ -947,9 +948,9 @@ int nandroid_restore_partition(const char* backup_path, const char* root) {
 #endif
         if (0 != (ret = format_volume(root))) {
 #ifndef USE_CHINESE_FONT
-            ui_print("Error while erasing %s image!\n", name);
+            ui_print("Error while erasing %s image!", name);
 #else
-            ui_print("格式化 %s 时出错！\n", name);
+            ui_print("格式化 %s 时出错！", name);
 #endif
             return ret;
         }
