@@ -390,6 +390,13 @@ typedef struct _saved_log_file {
     struct _saved_log_file* next;
 } saved_log_file;
 
+typedef struct _saved_log_file {
+    char* name;
+    struct stat st;
+    unsigned char* data;
+    struct _saved_log_file* next;
+} saved_log_file;
+
 static int
 erase_volume(const char *volume) {
     bool is_cache = (strcmp(volume, CACHE_ROOT) == 0);
