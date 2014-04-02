@@ -16,11 +16,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "loki.h"
-#include "../common.h"
 
-int loki_flash(char *partition)
+int loki_flash(const char* partition_label, const char* loki_image)
 {
-
 	int ifd, aboot_fd, ofd, recovery, offs, match;
 	void *orig, *aboot, *patch;
 	struct stat st;
@@ -28,16 +26,16 @@ int loki_flash(char *partition)
 	struct loki_hdr *loki_hdr;
 	char outfile[1024];
 
-
-	if (!strcmp(partition, "boot")) {
+	if (!strcmp(partition_label, "boot")) {
 		recovery = 0;
-	} else if (!strcmp(partition, "recovery")) {
+	} else if (!strcmp(partition_label, "recovery")) {
 		recovery = 1;
 	} else {
 #ifndef USE_CHINESE_FONT
 		LOGE("[+] First argument must be \"boot\" or \"recovery\".\n");
+		printf("[+] First argument must be \"boot\" or \"recovery\".\n");
 #else
-		LOGE("[+] 第一个参数必须为 \"boot\" 或 \"recovery\"。\n");
+		printf("[+] 第一个参数必须为 \"boot\" 或 \"recovery\"。\n");
 #endif
 		return 1;
 	}
@@ -46,19 +44,19 @@ int loki_flash(char *partition)
 	aboot_fd = open(ABOOT_PARTITION, O_RDONLY);
 	if (aboot_fd < 0) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to open aboot for reading.\n");
+		printf("[-] Failed to open aboot for reading.\n");
 #else
-		LOGE("[-] 无法打开 aboot 进行读取。\n");
+		printf("[-] 无法打开 aboot 进行读取。\n");
 #endif
 		return 1;
 	}
 
-	ifd = open(LOKI_IMAGE, O_RDONLY);
+	ifd = open(loki_image, O_RDONLY);
 	if (ifd < 0) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to open %s for reading.\n", LOKI_IMAGE);
+		printf("[-] Failed to open %s for reading.\n", loki_image);
 #else
-		LOGE("[-] 无法打开 %s 进行读取。\n", LOKI_IMAGE);
+		LOGE("[-] 无法打开 %s 进行读取。\n", loki_image);
 #endif
 		return 1;
 	}
@@ -66,9 +64,9 @@ int loki_flash(char *partition)
 	/* Map the image to be flashed */
 	if (fstat(ifd, &st)) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] fstat() failed.\n");
+		printf("[-] fstat() failed.\n");
 #else
-		LOGE("[-] fstat() 失败。\n");
+		printf("[-] fstat() 失败。\n");
 #endif
 		return 1;
 	}
@@ -76,9 +74,9 @@ int loki_flash(char *partition)
 	orig = mmap(0, (st.st_size + 0x2000 + 0xfff) & ~0xfff, PROT_READ, MAP_PRIVATE, ifd, 0);
 	if (orig == MAP_FAILED) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to mmap Loki image.\n");
+		printf("[-] Failed to mmap Loki image.\n");
 #else
-		LOGE("[-] mmap Loki 镜像失败。\n");
+		printf("[-] mmap Loki 镜像失败。\n");
 #endif
 		return 1;
 	}
@@ -89,9 +87,9 @@ int loki_flash(char *partition)
 	/* Verify this is a Loki image */
 	if (memcmp(loki_hdr->magic, "LOKI", 4)) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Input file is not a Loki image.\n");
+		printf("[-] Input file is not a Loki image.\n");
 #else
-		LOGE("[-] 输入文件并非一个 Loki 镜像。\n");
+		printf("[-] 输入文件并非一个 Loki 镜像。\n");
 #endif
 		return 1;
 	}
@@ -99,9 +97,9 @@ int loki_flash(char *partition)
 	/* Verify this is the right type of image */
 	if (loki_hdr->recovery != recovery) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Loki image is not a %s image.\n", recovery ? "recovery" : "boot");
+		printf("[-] Loki image is not a %s image.\n", recovery ? "recovery" : "boot");
 #else
-		LOGE("[-] Loki 镜像并非一个 %s 镜像。\n", recovery ? "recovery" : "boot");
+		printf("[-] Loki 镜像并非一个 %s 镜像。\n", recovery ? "recovery" : "boot");
 #endif
 		return 1;
 	}
@@ -110,9 +108,9 @@ int loki_flash(char *partition)
 	aboot = mmap(0, 0x40000, PROT_READ, MAP_PRIVATE, aboot_fd, 0);
 	if (aboot == MAP_FAILED) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to mmap aboot.\n");
+		printf("[-] Failed to mmap aboot.\n");
 #else
-		LOGE("[-] mmap aboot 失败。\n");
+		printf("[-] mmap aboot 失败。\n");
 #endif
 		return 1;
 	}
@@ -130,9 +128,9 @@ int loki_flash(char *partition)
 
 		if (patch < aboot || patch > aboot + 0x40000 - 8) {
 #ifndef USE_CHINESE_FONT
-			LOGE("[-] Invalid .lok file.\n");
+			printf("[-] Invalid .lok file.\n");
 #else
-			LOGE("[-] 无效的 .lok 文件。\n");
+			printf("[-] 无效的 .lok 文件。\n");
 #endif
 			return 1;
 		}
@@ -151,17 +149,17 @@ int loki_flash(char *partition)
 
 	if (!match) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Loki aboot version does not match device.\n");
+		printf("[-] Loki aboot version does not match device.\n");
 #else
-		LOGE("[-] Loki aboot 版本与设备不匹配。\n");
+		printf("[-] Loki aboot 版本与设备不匹配。\n");
 #endif
 		return 1;
 	}
 
 #ifndef USE_CHINESE_FONT
-	ui_print("[+] Loki validation passed, flashing image.\n");
+	printf("[+] Loki validation passed, flashing image.\n");
 #else
-	ui_print("[+] Loki 验证通过，开始刷入镜像。\n");
+	printf("[+] Loki 验证通过，开始刷入镜像。\n");
 #endif
 
 	snprintf(outfile, sizeof(outfile),
@@ -171,26 +169,26 @@ int loki_flash(char *partition)
 	ofd = open(outfile, O_WRONLY);
 	if (ofd < 0) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to open output block device.\n");
+		printf("[-] Failed to open output block device.\n");
 #else
-		LOGE("[-] 无法打开用于输出的块设备。\n");
+		printf("[-] 无法打开用于输出的块设备。\n");
 #endif
 		return 1;
 	}
 
 	if (write(ofd, orig, st.st_size) != st.st_size) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to write to block device.\n");
+		printf("[-] Failed to write to block device.\n");
 #else
-		LOGE("[-] 无法打开用于写入的块设备。\n");
+		printf("[-] 无法打开用于写入的块设备。\n");
 #endif
 		return 1;
 	}
 
 #ifndef USE_CHINESE_FONT
-	ui_print("[+] Loki flashing complete!\n");
+	printf("[+] Loki flashing complete!\n");
 #else
-	ui_print("[+] Loki 刷入完成！\n");
+	printf("[+] Loki 刷入完成！\n");
 #endif
 
 	close(ifd);

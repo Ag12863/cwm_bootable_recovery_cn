@@ -17,11 +17,44 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <limits.h>
+#include <stdio.h>
 #include "loki.h"
 #include "../common.h"
+#include "../libcrecovery/common.h"    // __system
 
-int loki_check_partition(char *partition)
-{
+
+#define ABOOT_DUMP_IMAGE    "/tmp/loki_aboot-dump.img"
+#define BOOT_DUMP_IMAGE     "/tmp/loki_boot-dump.img"
+#define RECOVERY_DUMP_IMAGE "/tmp/loki_recovery-dump.img"
+#define LOKI_IMAGE          "/tmp/loki_lokied-image"
+
+static int loki_dump_partitions() {
+    char cmd[PATH_MAX];
+    int ifd;
+
+    const char *target_partitions[] = { ABOOT_PARTITION, BOOT_PARTITION, RECOVERY_PARTITION, NULL };
+    const char *dump_images[] = { ABOOT_DUMP_IMAGE, BOOT_DUMP_IMAGE, RECOVERY_DUMP_IMAGE, NULL };
+    int i = 0;
+
+    ui_print("[+] Dumping partitions...\n");
+    while (target_partitions[i] != NULL) {
+        sprintf(cmd, "dd if=%s of=%s", target_partitions[i], dump_images[i]);
+        if (__system(cmd) != 0) {
+#ifndef USE_CHINESE_FONT
+            LOGE("[-] Failed to dump %s\n", target_partitions[i]);
+#else
+            LOGE("[-] 无法导出 %s。\n", target_partitions[i]);
+#endif
+            return 1;
+        }
+        ++i;
+    }
+
+    return 0;
+}
+
+static int needs_loki_patch(const char *partition_image) {
     int ifd;
     void *orig;
     struct stat st;
@@ -29,14 +62,14 @@ int loki_check_partition(char *partition)
     struct loki_hdr *loki_hdr;
     char *buf;
 
-    ifd = open(partition, O_RDONLY);
+    ifd = open(partition_image, O_RDONLY);
     if (ifd < 0) {
 #ifndef USE_CHINESE_FONT
-        LOGE("[-] Failed to open %s for reading.\n", partition);
+        LOGE("[-] Failed to open %s for reading.\n", partition_image);
 #else
-        LOGE("[-] 无法打开 %s for 进行读取。\n", partition);
+        LOGE("[-] 无法打开 %s for 进行读取。\n", partition_image);
 #endif
-        return 1;
+        return 0;
     }
 
     /* Map the image to be flashed */
@@ -46,7 +79,7 @@ int loki_check_partition(char *partition)
 #else
         LOGE("[-] fstat() 失败。\n");
 #endif
-        return 1;
+        return 0;
     }
 
     orig = mmap(0, (st.st_size + 0x2000 + 0xfff) & ~0xfff, PROT_READ, MAP_PRIVATE, ifd, 0);
@@ -56,7 +89,7 @@ int loki_check_partition(char *partition)
 #else
         LOGE("[-] mmap Loki 镜像失败。\n");
 #endif
-        return 1;
+        return 0;
     }
 
     hdr = orig;
@@ -65,55 +98,43 @@ int loki_check_partition(char *partition)
     /* Verify this is a Loki image */
     if (memcmp(loki_hdr->magic, "LOKI", 4)) {
 #ifndef USE_CHINESE_FONT
-        ui_print("%s needs lokifying.\n", partition);
+        ui_print("%s needs lokifying.\n", partition_image);
 #else
-        ui_print("%s 需要 lokifying。\n", partition);
+        ui_print("%s 需要 lokifying。\n", partition_image);
 #endif
         return 1;
     }
-    else {
-        return 0;
-    }
+
+    return 0;
 }
 
-int loki_check()
-{
+int loki_check() {
+    const char *target_partitions[] = { "boot", "recovery", NULL };
+    const char *dump_images[] = { BOOT_DUMP_IMAGE, RECOVERY_DUMP_IMAGE, NULL };
+    int i = 0;
     int ret = 0;
-    if (loki_check_partition(BOOT_PARTITION))
-    {
-        if ((ret = loki_patch("boot", BOOT_PARTITION)) != 0) {
+
+    ret = loki_dump_partitions();
+    while (!ret && target_partitions[i] != NULL) {
+        if (needs_loki_patch(dump_images[i])) {
+            if ((ret = loki_patch(target_partitions[i], ABOOT_DUMP_IMAGE, dump_images[i], LOKI_IMAGE)) != 0)
 #ifndef USE_CHINESE_FONT
-            LOGE("Error loki-ifying the boot image.\n");
+                LOGE("Error loki-ifying the %s image.\n", target_partitions[i]);
+            else if ((ret = loki_flash(target_partitions[i], LOKI_IMAGE)) != 0)
+                LOGE("Error loki-flashing the %s image.\n", target_partitions[i]);
 #else
-            LOGE("loki-ifying 此 boot 镜像时出错。\n");
+                LOGE("loki-ifying 镜像 %s 时出错。\n", target_partitions[i]);
+            else if ((ret = loki_flash(target_partitions[i], LOKI_IMAGE)) != 0)
+                LOGE("loki-flashing 镜像 %s 时出错。\n", target_partitions[i]);
 #endif
         }
-        else if ((ret = loki_flash("boot")) != 0) {
-#ifndef USE_CHINESE_FONT
-            LOGE("Error loki-flashing the boot image.\n");
-#else
-            LOGE("loki-flashing 此 boot 镜像时出错。\n");
-#endif
-        }
+        ++ i;
     }
 
-    if (!ret && loki_check_partition(RECOVERY_PARTITION))
-    {
-        if ((ret = loki_patch("recovery", RECOVERY_PARTITION)) != 0) {
-#ifndef USE_CHINESE_FONT
-            LOGE("Error loki-ifying the recovery image.\n");
-#else
-            LOGE("loki-ifying 此 recovery 镜像时出错。\n");
-#endif
-        }
-        else if ((ret = loki_flash("recovery")) != 0) {
-#ifndef USE_CHINESE_FONT
-            LOGE("Error loki-flashing the recovery image.\n");
-#else
-            LOGE("loki-flashing 此 recovery 镜像时出错。\n");
-#endif
-        }
-    }
+    // free the ramdisk
+    remove(ABOOT_DUMP_IMAGE);
+    remove(BOOT_DUMP_IMAGE);
+    remove(RECOVERY_DUMP_IMAGE);
 
     return ret;
 }

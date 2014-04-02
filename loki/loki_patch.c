@@ -18,7 +18,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "loki.h"
-#include "../common.h"
 
 struct target {
 	char *vendor;
@@ -143,6 +142,22 @@ struct target targets[] = {
 		.lg = 1,
 	},
 	{
+		.vendor = "US Cellular",
+		.device = "LG Optimus F7",
+		.build = "US78011a",
+		.check_sigs = 0x88f112c8,
+		.hdr = 0x88f84518,
+		.lg = 1,
+	},
+	{
+		.vendor = "Sprint",
+		.device = "LG Optimus F7",
+		.build = "LG870ZV5_02",
+		.check_sigs = 0x88f11710,
+		.hdr = 0x88f842a8,
+		.lg = 1,
+	},
+	{
 		.vendor = "Virgin Mobile",
 		.device = "LG Optimus F3",
 		.build = "LS720ZV5",
@@ -255,6 +270,14 @@ struct target targets[] = {
 		.lg = 1,
 	},
 	{
+		.vendor = "KDDI",
+		.device = "LG G Flex",
+		.build = "LGL2310d",
+		.check_sigs = 0xf81261c,
+		.hdr = 0xf8b41c0,
+		.lg = 1,
+	},
+	{
 		.vendor = "International",
 		.device = "LG Optimus F5",
 		.build = "P87510e",
@@ -303,6 +326,14 @@ struct target targets[] = {
 		.lg = 1,
 	},
 	{
+		.vendor = "Open EU",
+		.device = "LG Optimus F6",
+		.build = "D50510a",
+		.check_sigs = 0x88f10284,
+		.hdr = 0x88f70aa4,
+		.lg = 1,
+	},
+	{
 		.vendor = "KDDI",
 		.device = "LG Isai",
 		.build = "LGL22",
@@ -316,6 +347,14 @@ struct target targets[] = {
 		.build = "F220K",
 		.check_sigs = 0x88f11034,
 		.hdr = 0x88f54418,
+		.lg = 1,
+	},
+	{
+		.vendor = "International",
+		.device = "LG Vu 3",
+		.build = "F300L",
+		.check_sigs = 0xf813170,
+		.hdr = 0xf8d2440,
 		.lg = 1,
 	},
 };
@@ -380,9 +419,8 @@ int patch_shellcode(unsigned int header, unsigned int ramdisk)
 	return -1;
 }
 
-int loki_patch(char *partition, char *partitionPath)
+int loki_patch(const char* partition_label, const char* aboot_image, const char* in_image, const char* out_image)
 {
-
 	int ifd, ofd, aboot_fd, pos, i, recovery, offset, fake_size;
 	unsigned int orig_ramdisk_size, orig_kernel_size, page_kernel_size, page_ramdisk_size, page_size, page_mask;
 	unsigned long target, aboot_base;
@@ -393,48 +431,46 @@ int loki_patch(char *partition, char *partitionPath)
 	struct loki_hdr *loki_hdr;
 	char *buf;
 
-	ui_print("[+] loki_patch v%s\n", VERSION);
-
-	if (!strcmp(partition, "boot")) {
+	if (!strcmp(partition_label, "boot")) {
 		recovery = 0;
-	} else if (!strcmp(partition, "recovery")) {
+	} else if (!strcmp(partition_label, "recovery")) {
 		recovery = 1;
 	} else {
 #ifndef USE_CHINESE_FONT
-		LOGE("[+] First argument must be \"boot\" or \"recovery\".\n");
+		printf("[+] First argument must be \"boot\" or \"recovery\".\n");
 #else
-		LOGE("[+] 第一个参数必须为 \"boot\" 或 \"recovery\"。\n");
+		printf("[+] 第一个参数必须为 \"boot\" 或 \"recovery\"。\n");
 #endif
 		return 1;
 	}
 
 	/* Open input files */
-	aboot_fd = open(ABOOT_PARTITION, O_RDONLY);
+	aboot_fd = open(aboot_image, O_RDONLY);
 	if (aboot_fd < 0) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to open %s for reading.\n", ABOOT_PARTITION);
+		printf("[-] Failed to open %s for reading.\n", aboot_image);
 #else
-		LOGE("[-] 无法打开 %s 进行读取。\n", ABOOT_PARTITION);
+		printf("[-] 无法打开 %s 进行读取。\n", aboot_image);
 #endif
 		return 1;
 	}
 
-	ifd = open(partitionPath, O_RDONLY);
+	ifd = open(in_image, O_RDONLY);
 	if (ifd < 0) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to open %s for reading.\n", partitionPath);
+		printf("[-] Failed to open %s for reading.\n", in_image);
 #else
-		LOGE("[-] 无法打开 %s 进行读取。\n", partitionPath);
+		printf("[-] 无法打开 %s 进行读取。\n", in_image);
 #endif
 		return 1;
 	}
 
-	ofd = open(LOKI_IMAGE, O_WRONLY|O_CREAT|O_TRUNC, 0644);
+	ofd = open(out_image, O_WRONLY|O_CREAT|O_TRUNC, 0644);
 	if (ofd < 0) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to open %s for writing.\n", LOKI_IMAGE);
+		printf("[-] Failed to open %s for writing.\n", out_image);
 #else
-		LOGE("[-] 无法打开 %s 进行写入。\n", LOKI_IMAGE);
+		printf("[-] 无法打开 %s 进行写入。\n", out_image);
 #endif
 		return 1;
 	}
@@ -442,20 +478,19 @@ int loki_patch(char *partition, char *partitionPath)
 	/* Find the signature checking function via pattern matching */
 	if (fstat(aboot_fd, &st)) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] fstat() failed.\n");
+		printf("[-] fstat() failed.\n");
 #else
-		LOGE("[-] fstat() 失败。\n");
+		printf("[-] fstat() 失败。\n");
 #endif
 		return 1;
 	}
 
-	/* Verify the to-be-patched address matches the known code pattern */
 	aboot = mmap(0, (st.st_size + 0xfff) & ~0xfff, PROT_READ, MAP_PRIVATE, aboot_fd, 0);
 	if (aboot == MAP_FAILED) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to mmap aboot.\n");
+		printf("[-] Failed to mmap aboot.\n");
 #else
-		LOGE("[-] mmap aboot 失败。\n");
+		printf("[-] mmap aboot 失败。\n");
 #endif
 		return 1;
 	}
@@ -504,9 +539,9 @@ int loki_patch(char *partition, char *partitionPath)
 
 	if (!target) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to find function to patch.\n");
+		printf("[-] Failed to find function to patch.\n");
 #else
-		LOGE("[-] 无法找到要打补丁的函数。\n");
+		printf("[-] 无法找到要打补丁的函数。\n");
 #endif
 		return 1;
 	}
@@ -522,25 +557,25 @@ int loki_patch(char *partition, char *partitionPath)
 
 	if (!tgt) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Unsupported aboot image.\n");
+		printf("[-] Unsupported aboot image.\n");
 #else
-		LOGE("[-] 不支持的 aboot 镜像。\n");
+		printf("[-] 不支持的 aboot 镜像。\n");
 #endif
 		return 1;
 	}
 
 #ifndef USE_CHINESE_FONT
-	ui_print("[+] Detected target %s %s build %s\n", tgt->vendor, tgt->device, tgt->build);
+	printf("[+] Detected target %s %s build %s\n", tgt->vendor, tgt->device, tgt->build);
 #else
-	ui_print("[+] 检查到目标设备 %s %s 版本 %s\n", tgt->vendor, tgt->device, tgt->build);
+	printf("[+] 检查到目标设备 %s %s 版本 %s\n", tgt->vendor, tgt->device, tgt->build);
 #endif
 
 	/* Map the original boot/recovery image */
 	if (fstat(ifd, &st)) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] fstat() failed.\n");
+		printf("[-] fstat() failed.\n");
 #else
-		LOGE("[-] fstat() 失败。\n");
+		printf("[-] fstat() 失败。\n");
 #endif
 		return 1;
 	}
@@ -548,9 +583,9 @@ int loki_patch(char *partition, char *partitionPath)
 	orig = mmap(0, (st.st_size + 0x2000 + 0xfff) & ~0xfff, PROT_READ|PROT_WRITE, MAP_PRIVATE, ifd, 0);
 	if (orig == MAP_FAILED) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to mmap input file.\n");
+		printf("[-] Failed to mmap input file.\n");
 #else
-		LOGE("[-] mmap 输入文件失败。\n");
+		printf("[-] mmap 输入文件失败。\n");
 #endif
 		return 1;
 	}
@@ -560,25 +595,25 @@ int loki_patch(char *partition, char *partitionPath)
 
 	if (!memcmp(loki_hdr->magic, "LOKI", 4)) {
 #ifndef USE_CHINESE_FONT
-		ui_print("[-] Input file is already a Loki image.\n");
+		printf("[-] Input file is already a Loki image.\n");
 #else
-		ui_print("[-] 输入文件已经是一个 Loki 镜像了。\n");
+		printf("[-] 输入文件已经是一个 Loki 镜像了。\n");
 #endif
 
 		/* Copy the entire file to the output transparently */
 		if (write(ofd, orig, st.st_size) != st.st_size) {
 #ifndef USE_CHINESE_FONT
-			LOGE("[-] Failed to copy Loki image.\n");
+			printf("[-] Failed to copy Loki image.\n");
 #else
-			LOGE("[-] 复制 Loki 镜像失败。\n");
+			printf("[-] 复制 Loki 镜像失败。\n");
 #endif
 			return 1;
 		}
 
 #ifndef USE_CHINESE_FONT
-		ui_print("[+] Copied Loki image to %s.\n", LOKI_IMAGE);
+		printf("[+] Copied Loki image to %s.\n", out_image);
 #else
-		ui_print("[+] 已将 Loki 镜像复制到 %s。\n", LOKI_IMAGE);
+		printf("[+] 已将 Loki 镜像复制到 %s。\n", out_image);
 #endif
 
 		return 0;
@@ -596,11 +631,11 @@ int loki_patch(char *partition, char *partitionPath)
 	orig_ramdisk_size = hdr->ramdisk_size;
 
 #ifndef USE_CHINESE_FONT
-	ui_print("[+] Original kernel address: %.08x\n", hdr->kernel_addr);
-	ui_print("[+] Original ramdisk address: %.08x\n", hdr->ramdisk_addr);
+	printf("[+] Original kernel address: %.08x\n", hdr->kernel_addr);
+	printf("[+] Original ramdisk address: %.08x\n", hdr->ramdisk_addr);
 #else
-	ui_print("[+] 原内核地址：%.08x\n", hdr->kernel_addr);
-	ui_print("[+] 原 ramdisk 地址：%.08x\n", hdr->ramdisk_addr);
+	printf("[+] 原内核地址：%.08x\n", hdr->kernel_addr);
+	printf("[+] 原 ramdisk 地址：%.08x\n", hdr->ramdisk_addr);
 #endif
 
 	/* Store the original values in unused fields of the header */
@@ -610,9 +645,9 @@ int loki_patch(char *partition, char *partitionPath)
 
 	if (patch_shellcode(tgt->hdr, hdr->ramdisk_addr) < 0) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to patch shellcode.\n");
+		printf("[-] Failed to patch shellcode.\n");
 #else
-		LOGE("[-] 无法为 shellcode 打补丁。\n");
+		printf("[-] 无法为 shellcode 打补丁。\n");
 #endif
 		return 1;
 	}
@@ -637,9 +672,9 @@ int loki_patch(char *partition, char *partitionPath)
 	/* Write the image header */
 	if (write(ofd, orig, page_size) != page_size) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to write header to output file.\n");
+		printf("[-] Failed to write header to output file.\n");
 #else
-		LOGE("[-] 无法将头部数据写入输出文件中。\n");
+		printf("[-] 无法将头部数据写入输出文件中。\n");
 #endif
 		return 1;
 	}
@@ -649,9 +684,9 @@ int loki_patch(char *partition, char *partitionPath)
 	/* Write the kernel */
 	if (write(ofd, orig + page_size, page_kernel_size) != page_kernel_size) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to write kernel to output file.\n");
+		printf("[-] Failed to write kernel to output file.\n");
 #else
-		LOGE("[-] 无法将内核数据写入输出文件中。\n");
+		printf("[-] 无法将内核数据写入输出文件中。\n");
 #endif
 		return 1;
 	}
@@ -661,9 +696,9 @@ int loki_patch(char *partition, char *partitionPath)
 	/* Write the ramdisk */
 	if (write(ofd, orig + page_size + page_kernel_size, page_ramdisk_size) != page_ramdisk_size) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to write ramdisk to output file.\n");
+		printf("[-] Failed to write ramdisk to output file.\n");
 #else
-		LOGE("[-] 无法将 ramdisk 数据写入输出文件中。\n");
+		printf("[-] 无法将 ramdisk 数据写入输出文件中。\n");
 #endif
 		return 1;
 	}
@@ -672,9 +707,9 @@ int loki_patch(char *partition, char *partitionPath)
 	buf = malloc(fake_size);
 	if (!buf) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Out of memory.\n");
+		printf("[-] Out of memory.\n");
 #else
-		LOGE("[-] 内存不足。\n");
+		printf("[-] 内存不足。\n");
 #endif
 		return 1;
 	}
@@ -684,9 +719,9 @@ int loki_patch(char *partition, char *partitionPath)
 
 	if (write(ofd, buf, fake_size) != fake_size) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to write original aboot code to output file.\n");
+		printf("[-] Failed to write original aboot code to output file.\n");
 #else
-		LOGE("[-] 无法将原 aboot 代码写入输出文件中。\n");
+		printf("[-] 无法将原 aboot 代码写入输出文件中。\n");
 #endif
 		return 1;
 	}
@@ -698,16 +733,16 @@ int loki_patch(char *partition, char *partitionPath)
 	if (hdr->dt_size) {
 
 #ifndef USE_CHINESE_FONT
-		ui_print("[+] Writing device tree.\n");
+		printf("[+] Writing device tree.\n");
 #else
-		ui_print("[+] 正在写入设备树。\n");
+		printf("[+] 正在写入设备树。\n");
 #endif
 
 		if (write(ofd, orig + page_size + page_kernel_size + page_ramdisk_size, hdr->dt_size) != hdr->dt_size) {
 #ifndef USE_CHINESE_FONT
-			LOGE("[-] Failed to write device tree to output file.\n");
+			printf("[-] Failed to write device tree to output file.\n");
 #else
-			LOGE("[-] 无法将设备树写入输出文件中。\n");
+			printf("[-] 无法将设备树写入输出文件中。\n");
 #endif
 			return 1;
 		}
@@ -718,9 +753,9 @@ int loki_patch(char *partition, char *partitionPath)
 	/* Write the patch */
 	if (write(ofd, patch, sizeof(patch)) != sizeof(patch)) {
 #ifndef USE_CHINESE_FONT
-		LOGE("[-] Failed to write patch to output file.\n");
+		printf("[-] Failed to write patch to output file.\n");
 #else
-		LOGE("[-] 无法将补丁写入输出文件中。\n");
+		printf("[-] 无法将补丁写入输出文件中。\n");
 #endif
 		return 1;
 	}
@@ -730,9 +765,9 @@ int loki_patch(char *partition, char *partitionPath)
 	close(aboot_fd);
 
 #ifndef USE_CHINESE_FONT
-	ui_print("[+] Output file written to %s\n", LOKI_IMAGE);
+	printf("[+] Output file written to %s\n", out_image);
 #else
-	ui_print("[+] 输出文件已写入到 %s\n", LOKI_IMAGE);
+	printf("[+] 输出文件已写入到 %s\n", out_image);
 #endif
 
 	return 0;
