@@ -32,7 +32,6 @@ int loki_flash(const char* partition_label, const char* loki_image)
 		recovery = 1;
 	} else {
 #ifndef USE_CHINESE_FONT
-		LOGE("[+] First argument must be \"boot\" or \"recovery\".\n");
 		printf("[+] First argument must be \"boot\" or \"recovery\".\n");
 #else
 		printf("[+] 第一个参数必须为 \"boot\" 或 \"recovery\"。\n");
@@ -56,7 +55,7 @@ int loki_flash(const char* partition_label, const char* loki_image)
 #ifndef USE_CHINESE_FONT
 		printf("[-] Failed to open %s for reading.\n", loki_image);
 #else
-		LOGE("[-] 无法打开 %s 进行读取。\n", loki_image);
+		printf("[-] 无法打开 %s 进行读取。\n", loki_image);
 #endif
 		return 1;
 	}

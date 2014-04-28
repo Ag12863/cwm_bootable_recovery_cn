@@ -242,10 +242,14 @@ static void draw_text_line(int row, const char* t) {
   }
 }
 
-//#define MENU_TEXT_COLOR 255, 160, 49, 255
-#define MENU_TEXT_COLOR 0, 191, 255, 255
-#define NORMAL_TEXT_COLOR 200, 200, 200, 255
-#define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
+static int menuTextColor[4] = {MENU_TEXT_COLOR};
+
+void ui_setMenuTextColor(int r, int g, int b, int a) {
+    menuTextColor[0] = r;
+    menuTextColor[1] = g;
+    menuTextColor[2] = b;
+    menuTextColor[3] = a;
+}
 
 // Redraw everything on the screen.  Does not flip pages.
 // Should only be called with gUpdateMutex locked.
@@ -265,8 +269,7 @@ static void draw_screen_locked(void)
         int j = 0;
         int row = 0;            // current row that we are drawing on
         if (show_menu) {
-#ifndef BOARD_TOUCH_RECOVERY
-            gr_color(MENU_TEXT_COLOR);
+            gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
 
             int batt_level = 0;
             batt_level = get_batt_stats();
@@ -275,10 +278,12 @@ static void draw_screen_locked(void)
             }
             char batt_text[40];
             sprintf(batt_text, "[%d%%]", batt_level);
-            gr_color(MENU_TEXT_COLOR);
+            gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
             int length = strnlen(batt_text, MENU_MAX_COLS) * CHAR_WIDTH;
             gr_text(gr_fb_width() - length - 1, CHAR_HEIGHT - 1, batt_text, 0);
 
+#ifndef BOARD_TOUCH_RECOVERY
+            gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
             gr_fill(0, (menu_top + menu_sel - menu_show_start) * CHAR_HEIGHT,
                     gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*CHAR_HEIGHT+1);
 
@@ -293,14 +298,14 @@ static void draw_screen_locked(void)
             else
                 j = menu_items - menu_show_start;
 
-            gr_color(MENU_TEXT_COLOR);
+            gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
             for (i = menu_show_start + menu_top; i < (menu_show_start + menu_top + j); ++i) {
                 if (i == menu_top + menu_sel) {
                     gr_color(255, 255, 255, 255);
                     draw_text_line(i - menu_show_start , menu[i]);
-                    gr_color(MENU_TEXT_COLOR);
+                    gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
                 } else {
-                    gr_color(MENU_TEXT_COLOR);
+                    gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
                     draw_text_line(i - menu_show_start, menu[i]);
                 }
                 row++;
@@ -481,14 +486,6 @@ static int input_callback(int fd, short revents, void *data)
         pthread_cond_signal(&key_queue_cond);
     }
     pthread_mutex_unlock(&key_queue_mutex);
-
-    if (ev.value > 0 && device_toggle_display(key_pressed, ev.code)) {
-        pthread_mutex_lock(&gUpdateMutex);
-        show_text = !show_text;
-        if (show_text) show_text_ever = 1;
-        update_screen_locked();
-        pthread_mutex_unlock(&gUpdateMutex);
-    }
 
     if (ev.value > 0 && device_reboot_now(key_pressed, ev.code)) {
         reboot_main_system(ANDROID_RB_RESTART, 0, 0);
@@ -1103,10 +1100,6 @@ void ui_set_show_text(int value) {
 
 void ui_set_showing_back_button(int showBackButton) {
     gShowBackButton = showBackButton;
-}
-
-int ui_get_showing_back_button() {
-    return gShowBackButton;
 }
 
 int ui_is_showing_back_button() {
