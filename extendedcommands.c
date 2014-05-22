@@ -1166,6 +1166,10 @@ int show_partition_menu() {
                     ui_print("完成。\n");
 #endif
                 ignore_data_media_workaround(0);
+
+                // recreate /data/media with proper permissions
+                ensure_path_mounted("/data");
+                setup_data_media();
             }
         } else if (is_data_media() && chosen_item == (mountable_volumes + formatable_volumes + 1)) {
             show_mount_usb_storage_menu();
@@ -1666,7 +1670,14 @@ void format_sdcard(const char* volume) {
                 sprintf(cmd, "/sbin/mkntfs -f %s", v->blk_device);
                 ret = __system(cmd);
             } else if (strcmp(list[chosen_item], "ext4") == 0) {
-                ret = make_ext4fs(v->blk_device, v->length, volume, sehandle);
+                char *secontext = NULL;
+                if (selabel_lookup(sehandle, &secontext, v->mount_point, S_IFDIR) < 0) {
+                    LOGE("cannot lookup security context for %s\n", v->mount_point);
+                    ret = make_ext4fs(v->blk_device, v->length, volume, NULL);
+                } else {
+                    ret = make_ext4fs(v->blk_device, v->length, volume, sehandle);
+                    freecon(secontext);
+                }
             }
             break;
         }
@@ -2033,7 +2044,9 @@ int show_advanced_menu() {
                 break;
             }
             case 6:
-                ui_printlogtail(12);
+                ui_printlogtail(24);
+                ui_wait_key();
+                ui_clear_key_queue();
                 break;
             default:
 #ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
