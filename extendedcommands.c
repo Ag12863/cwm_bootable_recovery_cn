@@ -1672,7 +1672,11 @@ void format_sdcard(const char* volume) {
             } else if (strcmp(list[chosen_item], "ext4") == 0) {
                 char *secontext = NULL;
                 if (selabel_lookup(sehandle, &secontext, v->mount_point, S_IFDIR) < 0) {
+#ifndef USE_CHINESE_FONT
                     LOGE("cannot lookup security context for %s\n", v->mount_point);
+#else
+                    LOGE("无法为 %s 找到安全上下文\n", v->mount_point);
+#endif
                     ret = make_ext4fs(v->blk_device, v->length, volume, NULL);
                 } else {
                     ret = make_ext4fs(v->blk_device, v->length, volume, sehandle);

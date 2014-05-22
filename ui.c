@@ -786,7 +786,11 @@ void ui_printlogtail(int nb_lines) {
         }
         fclose(f);
     }
+#ifndef USE_CHINESE_FONT
     ui_print("Return to menu with any key.\n");
+#else
+    ui_print("按任意键返回菜单页。\n");
+#endif
     ui_log_stdout=1;
 }
 
