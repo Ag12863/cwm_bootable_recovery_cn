@@ -1175,10 +1175,10 @@ main(int argc, char **argv) {
     ui_init();
     //ui_print(EXPAND(RECOVERY_VERSION)"\n");
 #ifndef USE_CHINESE_FONT
-    ui_print("Author    : xuefy@xuefy.com\n");
+    ui_print("Author    : dianlujitao@gmail.com\n");
     ui_print("Build Time: "EXPAND(RECOVERY_BUILD_TIME)"\n");
 #else
-    ui_print("编译作者：大星星@ATX团队\n");
+    ui_print("编译作者：dianlujitao@ATX团队\n");
     ui_print("编译时间："EXPAND(RECOVERY_BUILD_TIME)"\n");
 #endif
 
